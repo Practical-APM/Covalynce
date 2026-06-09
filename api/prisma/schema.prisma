@@ -1,0 +1,470 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  VIEWER
+}
+
+enum ProviderName {
+  OPENAI
+  ANTHROPIC
+  GEMINI
+  AZURE_OPENAI
+  BEDROCK
+}
+
+enum ProviderStatus {
+  CONNECTED
+  SYNCING
+  ERROR
+  DISCONNECTED
+}
+
+enum ProviderAuthType {
+  API_KEY
+  OAUTH
+}
+
+enum AlertType {
+  BUDGET_THRESHOLD
+  SPEND_SPIKE
+  PROVIDER_SPIKE
+}
+
+enum AlertSeverity {
+  WARNING
+  CRITICAL
+}
+
+enum BudgetScope {
+  ORGANIZATION
+  TEAM
+}
+
+enum PolicyRuleType {
+  MODEL_ALLOW_LIST
+  MODEL_DENY_LIST
+  BUDGET_HARD_CAP
+}
+
+enum PolicyScope {
+  ORGANIZATION
+  TEAM
+}
+
+enum BudgetEnforcement {
+  MONITORING
+  HARD_CAP
+}
+
+enum SsoProvider {
+  NONE
+  CLERK
+  AUTH0
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("community")
+  budgetEnforcement BudgetEnforcement @default(MONITORING) @map("budget_enforcement")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users         User[]
+  teams         Team[]
+  providers     Provider[]
+  usageEvents   UsageEvent[]
+  budgets       Budget[]
+  alerts        Alert[]
+  alertSettings AlertSetting[]
+  auditLogs     AuditLog[]
+  dailySnapshots DailySpendSnapshot[]
+  gatewayApiKeys GatewayApiKey[]
+  policyRules   PolicyRule[]
+  routingSettings GatewayRoutingSettings?
+  agents        Agent[]
+  aiLicenses    AiLicense[]
+  ssoConfig     OrganizationSsoConfig?
+  rolePermissionOverrides RolePermissionOverride[]
+  costCenters   CostCenter[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  email          String
+  name           String?
+  role           UserRole @default(VIEWER)
+  externalAuthId String?  @map("external_auth_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  teamMembers  TeamMember[]
+  usageEvents  UsageEvent[]
+  magicLinkTokens MagicLinkToken[]
+  refreshTokens   RefreshToken[]
+
+  @@unique([organizationId, email])
+  @@map("users")
+}
+
+model MagicLinkToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("magic_link_tokens")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model Team {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      TeamMember[]
+  usageEvents  UsageEvent[]
+  budgets      Budget[]
+  policyRules  PolicyRule[]
+  agents       Agent[]
+  costCenters  CostCenter[]
+
+  @@unique([organizationId, name])
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String   @map("team_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model Provider {
+  id                   String           @id @default(uuid())
+  organizationId       String           @map("organization_id")
+  name                 ProviderName
+  displayName          String           @map("display_name")
+  authType             ProviderAuthType @default(API_KEY) @map("auth_type")
+  status               ProviderStatus   @default(DISCONNECTED)
+  encryptedCredentials String           @map("encrypted_credentials")
+  lastSyncAt           DateTime?      @map("last_sync_at")
+  lastSyncError        String?        @map("last_sync_error")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  usageEvents  UsageEvent[]
+
+  @@unique([organizationId, name])
+  @@map("providers")
+}
+
+model UsageEvent {
+  id             String       @id @default(uuid())
+  organizationId String       @map("organization_id")
+  providerId     String       @map("provider_id")
+  provider       ProviderName
+  model          String
+  userId         String?      @map("user_id")
+  teamId         String?      @map("team_id")
+  agentId        String?      @map("agent_id")
+  projectTag     String?      @map("project_tag")
+  inputTokens    Int          @map("input_tokens")
+  outputTokens   Int          @map("output_tokens")
+  cost           Decimal      @db.Decimal(12, 6)
+  externalId     String?      @map("external_id")
+  timestamp      DateTime
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  providerRef  Provider     @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  team         Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  agent        Agent?       @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, externalId])
+  @@index([organizationId, timestamp])
+  @@index([organizationId, teamId, timestamp])
+  @@index([organizationId, userId, timestamp])
+  @@index([organizationId, agentId, timestamp])
+  @@index([organizationId, projectTag, timestamp])
+  @@map("usage_events")
+}
+
+model PricingVersion {
+  id                 String       @id @default(uuid())
+  provider           ProviderName
+  model              String
+  effectiveDate      DateTime     @map("effective_date")
+  inputCostPerMillion  Decimal    @map("input_cost_per_million") @db.Decimal(10, 4)
+  outputCostPerMillion Decimal  @map("output_cost_per_million") @db.Decimal(10, 4)
+  createdAt          DateTime     @default(now()) @map("created_at")
+
+  @@unique([provider, model, effectiveDate])
+  @@map("pricing_versions")
+}
+
+model Budget {
+  id             String      @id @default(uuid())
+  organizationId String      @map("organization_id")
+  teamId         String?     @map("team_id")
+  name           String
+  scope          BudgetScope
+  monthlyLimit   Decimal     @map("monthly_limit") @db.Decimal(12, 2)
+  periodStart    DateTime    @map("period_start")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("budgets")
+}
+
+model Alert {
+  id             String        @id @default(uuid())
+  organizationId String        @map("organization_id")
+  type           AlertType
+  severity       AlertSeverity
+  title          String
+  message        String
+  read           Boolean       @default(false)
+  metadata       Json?
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, read, createdAt])
+  @@map("alerts")
+}
+
+model AlertSetting {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  emailEnabled   Boolean  @default(true) @map("email_enabled")
+  slackWebhook   String?  @map("slack_webhook")
+  budgetThresholdPercent Int @default(90) @map("budget_threshold_percent")
+  lastEmailDeliveryAt     DateTime? @map("last_email_delivery_at")
+  lastEmailDeliveryStatus String?   @map("last_email_delivery_status")
+  lastEmailDeliveryError  String?   @map("last_email_delivery_error")
+  lastSlackDeliveryAt     DateTime? @map("last_slack_delivery_at")
+  lastSlackDeliveryStatus String?   @map("last_slack_delivery_status")
+  lastSlackDeliveryError  String?   @map("last_slack_delivery_error")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId])
+  @@map("alert_settings")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  actorUserId    String?  @map("actor_user_id")
+  action         String
+  resource       String
+  resourceId     String?  @map("resource_id")
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
+}
+
+model DailySpendSnapshot {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  snapshotDate   DateTime @map("snapshot_date") @db.Date
+  totalCost      Decimal  @map("total_cost") @db.Decimal(14, 6)
+  requestCount   Int      @map("request_count")
+  inputTokens    Int      @map("input_tokens")
+  outputTokens   Int      @map("output_tokens")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, snapshotDate])
+  @@index([organizationId, snapshotDate])
+  @@map("daily_spend_snapshots")
+}
+
+model GatewayApiKey {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  name           String
+  keyPrefix      String    @map("key_prefix")
+  keyHash        String    @unique @map("key_hash")
+  enabled        Boolean   @default(true)
+  rateLimitRpm   Int       @default(120) @map("rate_limit_rpm")
+  lastUsedAt     DateTime? @map("last_used_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("gateway_api_keys")
+}
+
+model PolicyRule {
+  id             String         @id @default(uuid())
+  organizationId String         @map("organization_id")
+  teamId         String?        @map("team_id")
+  name           String
+  type           PolicyRuleType
+  scope          PolicyScope    @default(ORGANIZATION)
+  enabled        Boolean        @default(true)
+  config         Json
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, enabled])
+  @@map("policy_rules")
+}
+
+model GatewayRoutingSettings {
+  organizationId     String   @id @map("organization_id")
+  intelligentRouting Boolean  @default(false) @map("intelligent_routing")
+  customMappings     Json     @default("{}") @map("custom_mappings")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("gateway_routing_settings")
+}
+
+model Agent {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  name           String
+  slug           String
+  description    String?
+  teamId         String?  @map("team_id")
+  monthlyBudget  Decimal? @map("monthly_budget") @db.Decimal(12, 2)
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  usageEvents  UsageEvent[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("agents")
+}
+
+model AiLicense {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  vendor         String
+  planName       String    @map("plan_name")
+  seats          Int?
+  monthlyCost    Decimal?  @map("monthly_cost") @db.Decimal(12, 2)
+  renewsAt       DateTime? @map("renews_at")
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("ai_licenses")
+}
+
+model OrganizationSsoConfig {
+  organizationId      String      @id @map("organization_id")
+  provider            SsoProvider @default(NONE)
+  enabled             Boolean     @default(false)
+  issuerUrl           String?     @map("issuer_url")
+  jwksUri             String?     @map("jwks_uri")
+  audience            String?
+  allowedEmailDomains Json        @default("[]") @map("allowed_email_domains")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_sso_configs")
+}
+
+model RolePermissionOverride {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  role           UserRole
+  permission     String
+  allowed        Boolean
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, role, permission])
+  @@index([organizationId, role])
+  @@map("role_permission_overrides")
+}
+
+model CostCenter {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  code           String
+  name           String
+  description    String?
+  teamId         String?  @map("team_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("cost_centers")
+}

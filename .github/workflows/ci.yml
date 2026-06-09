@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: covalynce
+          POSTGRES_PASSWORD: covalynce_dev
+          POSTGRES_DB: covalynce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U covalynce -d covalynce"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    defaults:
+      run:
+        working-directory: api
+
+    env:
+      DATABASE_URL: postgresql://covalynce:covalynce_dev@localhost:5432/covalynce?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-jwt-secret-minimum-32-characters-long
+      CREDENTIALS_ENCRYPTION_KEY: ci-credentials-key-32-chars-min!!
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Build
+        run: npm run build
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+  prototype:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: prototype
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: prototype/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build

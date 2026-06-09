@@ -1,0 +1,6 @@
+<svg width="180" height="180" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Covalynce">
+  <rect width="100" height="100" fill="#030304"/>
+  <path d="M20 30 H65 V50" stroke="#66FCF1" stroke-width="10" stroke-linecap="square" fill="none"/>
+  <path d="M80 70 H35 V50" stroke="#66FCF1" stroke-width="10" stroke-linecap="square" fill="none"/>
+  <circle cx="50" cy="50" r="5" fill="#66FCF1"/>
+</svg>

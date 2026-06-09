@@ -1,0 +1,17 @@
+{
+  "tailwindCSS.experimental.configFile": "prototype/src/app/globals.css",
+  "tailwindCSS.includeLanguages": {
+    "typescript": "html",
+    "typescriptreact": "html"
+  },
+  "tailwindCSS.lint.suggestCanonicalClasses": "ignore",
+  "files.watcherExclude": {
+    "**/prototype/.next/**": true,
+    "**/api/dist/**": true,
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/prototype/.next": true,
+    "**/api/dist": true
+  }
+}
