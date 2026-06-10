@@ -38,7 +38,6 @@ export function DiagramItem({
   className?: string;
   delay?: number;
 }) {
-  const reduce = useReducedMotion();
   return (
     <motion.div
       className={className}

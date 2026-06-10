@@ -468,3 +468,14 @@ model CostCenter {
   @@index([organizationId])
   @@map("cost_centers")
 }
+
+/// Instance-wide runtime configuration for self-hosted deployments.
+/// Values override environment variables; secrets are AES-256-GCM encrypted.
+model InstanceSetting {
+  key       String   @id
+  value     String
+  secret    Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("instance_settings")
+}

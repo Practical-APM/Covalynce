@@ -17,6 +17,7 @@ import { EventsModule } from './events/events.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { HealthModule } from './health/health.module';
 import { InsightsModule } from './insights/insights.module';
+import { InstanceSettingsModule } from './instance-settings/instance-settings.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { PoliciesModule } from './policies/policies.module';
 import { LicensesModule } from './licenses/licenses.module';
@@ -57,6 +58,7 @@ import { RequestIdMiddleware } from './telemetry/request-id.middleware';
     EventsModule,
     GatewayModule,
     InsightsModule,
+    InstanceSettingsModule,
     IntegrationsModule,
     PoliciesModule,
     AgentsModule,

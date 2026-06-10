@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { PageHeader } from "@/components/page-header";
 import { EditionBadge } from "@/components/edition-badge";
@@ -15,13 +16,48 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { api } from "@/lib/api";
+import { isAdmin } from "@/lib/permissions";
 import { organization as mockOrg } from "@/lib/mock-data";
 
 export default function SettingsGeneralPage() {
-  const { apiMode, session } = useAuth();
-  const name = apiMode && session ? session.organization.name : mockOrg.name;
+  const { apiMode, session, refreshMe } = useAuth();
+  const initialName =
+    apiMode && session ? session.organization.name : mockOrg.name;
   const slug = apiMode && session ? session.organization.slug : "acme";
   const plan = apiMode && session ? session.organization.plan : "community";
+  const admin = !apiMode || isAdmin(session?.user.role ?? "VIEWER");
+
+  const [name, setName] = useState(initialName);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function handleSave() {
+    const trimmed = name.trim();
+    if (trimmed.length < 2) {
+      setMessage("Name must be at least 2 characters.");
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    try {
+      if (apiMode && session) {
+        await api.updateOrganization(session.organization.id, {
+          name: trimmed,
+        });
+        await refreshMe();
+        setMessage("Organization name updated.");
+      } else {
+        setMessage("Saved (demo mode: not persisted).");
+      }
+    } catch (e) {
+      setMessage(
+        e instanceof Error ? e.message : "Could not update the organization name. Try again."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -68,7 +104,12 @@ export default function SettingsGeneralPage() {
         <CardContent className="space-y-4 max-w-md">
           <div className="space-y-2">
             <Label htmlFor="org-name">Name</Label>
-            <Input id="org-name" defaultValue={name} readOnly={apiMode} />
+            <Input
+              id="org-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              readOnly={!admin}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="slug">URL slug</Label>
@@ -81,12 +122,17 @@ export default function SettingsGeneralPage() {
               app.covalynce.io/{slug}
             </p>
           </div>
-          {apiMode ? (
-            <p className="text-xs text-muted-foreground">
-              Organization name updates will be available in a future release.
-            </p>
+          {admin ? (
+            <Button onClick={handleSave} disabled={saving || name.trim() === initialName.trim()}>
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
           ) : (
-            <Button>Save changes</Button>
+            <p className="text-xs text-muted-foreground">
+              Only admins can rename the organization.
+            </p>
+          )}
+          {message && (
+            <p className="text-sm text-muted-foreground">{message}</p>
           )}
         </CardContent>
       </Card>

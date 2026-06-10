@@ -31,8 +31,8 @@ export function LandingHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 border-b transition-colors duration-200",
-        scrolled ? "border-border/80 bg-background/90 backdrop-blur-md" : "border-transparent bg-background/80"
+        "landing-ink-adaptive sticky top-0 z-50 border-b transition-colors duration-200",
+        scrolled ? "border-border/70" : "border-transparent"
       )}
     >
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-5 sm:px-8">
@@ -92,6 +92,13 @@ export function LandingHeader() {
               {l.label}
             </a>
           ))}
+          <Link
+            href="/login"
+            onClick={() => setOpen(false)}
+            className="block py-2 text-sm font-medium text-muted-foreground"
+          >
+            Sign in
+          </Link>
           <LandingButton href="/onboarding" className="mt-4 w-full">
             Start free
           </LandingButton>

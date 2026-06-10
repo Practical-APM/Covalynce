@@ -24,7 +24,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { SettingsNav } from "@/components/settings-nav";
 import { api } from "@/lib/api";
 import { hasPermission } from "@/lib/permissions";
 import { costCenters as mockCostCenters } from "@/lib/mock-data";
@@ -122,8 +121,6 @@ export default function CostCentersSettingsPage() {
         title="Cost centers"
         description="Allocation codes for gateway chargeback — tag requests so spend rolls up by project or department."
       />
-      <SettingsNav />
-
       {!apiMode && (
         <Callout variant="tip" title="Demo data">
           Showing sample cost centers. Enable API mode to create and sync live codes from gateway traffic.

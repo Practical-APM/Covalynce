@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ProviderName } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import { InstanceSettingsService } from '../instance-settings/instance-settings.service';
 import {
   PROVIDER_OAUTH_CONFIG,
   providerSupportsOAuth,
@@ -27,7 +28,10 @@ export interface OAuthTokenSet {
 
 @Injectable()
 export class ProviderOAuthService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly instanceSettings: InstanceSettingsService,
+  ) {}
 
   isMockEnabled() {
     return this.config.get<string>('PROVIDER_OAUTH_MOCK_ENABLED') === 'true';
@@ -37,17 +41,24 @@ export class ProviderOAuthService {
     return PROVIDER_OAUTH_CONFIG[provider];
   }
 
-  isOAuthConfigured(provider: ProviderName) {
+  /** Client credentials resolve from the instance settings UI first, env second. */
+  private clientCredential(key: string) {
+    return this.instanceSettings.getValue(key);
+  }
+
+  async isOAuthConfigured(provider: ProviderName) {
     if (this.isMockEnabled()) return true;
     const cfg = this.getOAuthConfig(provider);
     if (!cfg) return false;
-    const clientId = this.config.get<string>(cfg.envClientId);
-    const clientSecret = this.config.get<string>(cfg.envClientSecret);
-    const redirectUri = this.config.get<string>(cfg.envRedirectUri);
+    const [clientId, clientSecret, redirectUri] = await Promise.all([
+      this.clientCredential(cfg.envClientId),
+      this.clientCredential(cfg.envClientSecret),
+      this.clientCredential(cfg.envRedirectUri),
+    ]);
     return Boolean(clientId && clientSecret && redirectUri);
   }
 
-  startOAuth(
+  async startOAuth(
     organizationId: string,
     userId: string,
     provider: ProviderName,
@@ -74,14 +85,14 @@ export class ProviderOAuthService {
       };
     }
 
-    if (!this.isOAuthConfigured(provider)) {
+    if (!(await this.isOAuthConfigured(provider))) {
       throw new BadRequestException(
-        `OAuth is not configured for ${provider}. Set ${cfg.envClientId} or use API key connect.`,
+        `OAuth is not configured for ${provider}. Add the client credentials in Settings → Self-host (or set ${cfg.envClientId}), or use API key connect.`,
       );
     }
 
-    const clientId = this.config.get<string>(cfg.envClientId)!;
-    const redirectUri = this.config.get<string>(cfg.envRedirectUri)!;
+    const clientId = (await this.clientCredential(cfg.envClientId))!;
+    const redirectUri = (await this.clientCredential(cfg.envRedirectUri))!;
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -122,9 +133,11 @@ export class ProviderOAuthService {
       throw new BadRequestException('OAuth not configured for this provider');
     }
 
-    const clientId = this.config.get<string>(cfg.envClientId);
-    const clientSecret = this.config.get<string>(cfg.envClientSecret);
-    const redirectUri = this.config.get<string>(cfg.envRedirectUri);
+    const [clientId, clientSecret, redirectUri] = await Promise.all([
+      this.clientCredential(cfg.envClientId),
+      this.clientCredential(cfg.envClientSecret),
+      this.clientCredential(cfg.envRedirectUri),
+    ]);
     if (!clientId || !clientSecret || !redirectUri) {
       throw new BadRequestException('OAuth client credentials not configured');
     }
@@ -227,8 +240,10 @@ export class ProviderOAuthService {
       throw new BadRequestException('OAuth not configured for this provider');
     }
 
-    const clientId = this.config.get<string>(cfg.envClientId);
-    const clientSecret = this.config.get<string>(cfg.envClientSecret);
+    const [clientId, clientSecret] = await Promise.all([
+      this.clientCredential(cfg.envClientId),
+      this.clientCredential(cfg.envClientSecret),
+    ]);
     if (!clientId || !clientSecret) {
       throw new BadRequestException('OAuth client credentials not configured');
     }

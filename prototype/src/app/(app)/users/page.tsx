@@ -84,6 +84,7 @@ export default function UsersPage() {
             cost: r.cost,
             trend: null,
           }))
+          .sort((a, b) => b.cost - a.cost)
       );
     } finally {
       setLoading(false);
@@ -123,8 +124,8 @@ export default function UsersPage() {
           description="After you connect a provider and usage syncs, spend appears here per person. In demo mode, open the dashboard with sample data first."
           actionLabel="Connect provider"
           actionHref="/providers"
-          secondaryLabel="Setup guide"
-          secondaryHref="/help/getting-started"
+          secondaryLabel="View sample Overview"
+          secondaryHref="/dashboard"
         />
       ) : (
         <>

@@ -10,6 +10,7 @@ const links = [
   { href: "/settings/cost-centers", label: "Cost centers" },
   { href: "/settings/permissions", label: "Permissions" },
   { href: "/settings/sso", label: "Single sign-on" },
+  { href: "/settings/self-host", label: "Self-host" },
   { href: "/settings/billing", label: "Billing" },
   { href: "/settings/audit", label: "Audit log" },
 ];

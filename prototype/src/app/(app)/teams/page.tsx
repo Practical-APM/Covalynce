@@ -59,6 +59,7 @@ export default function TeamsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!apiMode) {
@@ -109,12 +110,17 @@ export default function TeamsPage() {
 
   async function handleCreateTeam() {
     if (!teamName.trim() || !apiMode) return;
+    setCreateError(null);
     setCreating(true);
     try {
       await api.createTeam(teamName.trim());
       setTeamName("");
       setCreateOpen(false);
       await load();
+    } catch (e) {
+      setCreateError(
+        e instanceof Error ? e.message : "Could not create team. Try again."
+      );
     } finally {
       setCreating(false);
     }
@@ -179,6 +185,9 @@ export default function TeamsPage() {
                       placeholder="Platform Engineering"
                     />
                   </div>
+                  {createError && (
+                    <p className="text-sm text-destructive">{createError}</p>
+                  )}
                   <Button
                     className="w-full"
                     disabled={!teamName.trim() || creating}
@@ -190,9 +199,9 @@ export default function TeamsPage() {
               </DialogContent>
             </Dialog>
           ) : (
-            <Button variant="outline" size="sm" disabled>
-              Create team
-            </Button>
+            <p className="text-xs text-muted-foreground">
+              Sign in with the API connected to create teams.
+            </p>
           )}
         </CardHeader>
         <CardContent>
@@ -204,10 +213,12 @@ export default function TeamsPage() {
               <TableRow>
                 <TableHead>Team</TableHead>
                 <TableHead>Members</TableHead>
-                <TableHead>Top model</TableHead>
+                {!apiMode && <TableHead>Top model</TableHead>}
                 <TableHead className="text-right">Spend</TableHead>
                 <TableHead className="text-right">Budget</TableHead>
-                <TableHead className="text-right">Trend</TableHead>
+                {!apiMode && (
+                  <TableHead className="text-right">Trend</TableHead>
+                )}
                 <TableHead className="w-[140px]">Utilization</TableHead>
               </TableRow>
             </TableHeader>
@@ -228,28 +239,32 @@ export default function TeamsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>{team.members}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {team.topModel}
-                    </TableCell>
+                    {!apiMode && (
+                      <TableCell className="text-muted-foreground">
+                        {team.topModel}
+                      </TableCell>
+                    )}
                     <TableCell className="text-right font-mono">
                       {formatCurrency(team.monthlySpend)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-muted-foreground">
                       {team.budget > 0 ? formatCurrency(team.budget) : "—"}
                     </TableCell>
-                    <TableCell
-                      className={cn(
-                        "text-right font-mono text-sm text-muted-foreground",
-                        team.trend != null &&
-                          team.trend > 15 &&
-                          "text-amber-600 dark:text-amber-400",
-                        team.trend != null &&
-                          team.trend < 0 &&
-                          "text-emerald-600 dark:text-emerald-400"
-                      )}
-                    >
-                      {team.trend != null ? formatPercent(team.trend) : "—"}
-                    </TableCell>
+                    {!apiMode && (
+                      <TableCell
+                        className={cn(
+                          "text-right font-mono text-sm text-muted-foreground",
+                          team.trend != null &&
+                            team.trend > 15 &&
+                            "text-amber-600 dark:text-amber-400",
+                          team.trend != null &&
+                            team.trend < 0 &&
+                            "text-emerald-600 dark:text-emerald-400"
+                        )}
+                      >
+                        {team.trend != null ? formatPercent(team.trend) : "—"}
+                      </TableCell>
+                    )}
                     <TableCell>
                       {team.budget > 0 ? (
                         <div className="flex items-center gap-2">

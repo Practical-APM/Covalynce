@@ -25,14 +25,14 @@ export function MetricCard({
   return (
     <div className={cn("surface-panel p-5", className)}>
       <div className="flex items-center gap-1.5">
-        <p className="text-[13px] font-medium text-muted-foreground">{label}</p>
+        <p className="ledger-label">{label}</p>
         {help && <HelpTip content={help} />}
       </div>
       <p className="mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums text-foreground">
         {value}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        {trend !== undefined && (
+        {trend !== undefined && Number.isFinite(trend) && (
           <span
             className={cn(
               "inline-flex items-center gap-0.5 text-xs font-medium",

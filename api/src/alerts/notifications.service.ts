@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { InstanceSettingsService } from '../instance-settings/instance-settings.service';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly instanceSettings: InstanceSettingsService) {}
 
-  isEmailConfigured() {
-    return Boolean(this.config.get<string>('RESEND_API_KEY'));
+  async isEmailConfigured() {
+    return Boolean(await this.instanceSettings.getValue('RESEND_API_KEY'));
   }
 
   async sendSlack(webhookUrl: string, text: string) {
@@ -31,7 +31,7 @@ export class NotificationsService {
   }
 
   async sendEmail(to: string[], subject: string, body: string) {
-    const apiKey = this.config.get<string>('RESEND_API_KEY');
+    const apiKey = await this.instanceSettings.getValue('RESEND_API_KEY');
     if (!apiKey) {
       this.logger.log(
         `[Email demo] To: ${to.join(', ')} — ${subject}: ${body}`,
@@ -48,7 +48,7 @@ export class NotificationsService {
         },
         body: JSON.stringify({
           from:
-            this.config.get<string>('ALERT_FROM_EMAIL') ??
+            (await this.instanceSettings.getValue('ALERT_FROM_EMAIL')) ??
             'alerts@covalynce.io',
           to,
           subject,

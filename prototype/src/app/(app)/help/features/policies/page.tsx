@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { DocsShell } from "@/components/docs-shell";
 import { Callout } from "@/components/callout";
 import { DocScreenshot } from "@/components/docs/doc-screenshot";

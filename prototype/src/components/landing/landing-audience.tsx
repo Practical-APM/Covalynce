@@ -1,53 +1,35 @@
 "use client";
 
-import { Building2, Code2, LineChart } from "lucide-react";
-import { LANDING, LANDING_AUDIENCE, YC_ONE_LINER } from "@/lib/landing-copy";
+import { LANDING, LANDING_AUDIENCE } from "@/lib/landing-copy";
 import { LandingSection } from "@/components/landing/landing-section";
-
-const icons = {
-  finance: LineChart,
-  platform: Code2,
-  engineering: Building2,
-} as const;
+import { RevealOnScroll } from "@/components/landing/landing-scroll-fx";
 
 export function LandingAudience() {
   return (
     <LandingSection
       id="audience"
+      index="§ 06"
       eyebrow={LANDING.audienceEyebrow}
       title={LANDING.audienceTitle}
       lead={LANDING.audienceLead}
-      align="left"
       border="top"
-      className="bg-card/30 py-16 sm:py-24"
     >
-      <blockquote className="mb-10 max-w-3xl border-l-2 border-[var(--brand-neon)]/60 pl-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
-        {YC_ONE_LINER}
-      </blockquote>
-
-      <div className="grid gap-5 md:grid-cols-3">
-        {LANDING_AUDIENCE.map((persona) => {
-          const Icon = icons[persona.icon];
-          return (
-            <article
-              key={persona.role}
-              className="flex flex-col border border-border bg-card p-6 sm:p-7 rounded-[var(--radius)]"
-            >
-              <div className="flex size-10 items-center justify-center border border-border bg-background">
-                <Icon className="size-4 text-[var(--brand-neon)]" strokeWidth={1.75} />
-              </div>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="grid border-t-2 border-foreground/80 md:grid-cols-3">
+        {LANDING_AUDIENCE.map((persona, i) => (
+          <RevealOnScroll key={persona.role} delay={i * 0.1}>
+            <article className="flex h-full flex-col border-b border-border py-8 md:border-b-0 md:pr-10 md:[&:not(:first-child)]:border-l md:[&:not(:first-child)]:border-border md:[&:not(:first-child)]:pl-10">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {persona.role}
               </p>
-              <h3 className="mt-2 font-display text-lg tracking-tight text-foreground">
+              <h3 className="font-display mt-4 flex-1 text-2xl leading-snug tracking-tight text-foreground">
                 &ldquo;{persona.question}&rdquo;
               </h3>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-6 border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
                 {persona.outcome}
               </p>
             </article>
-          );
-        })}
+          </RevealOnScroll>
+        ))}
       </div>
     </LandingSection>
   );

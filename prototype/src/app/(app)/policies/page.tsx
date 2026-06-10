@@ -37,12 +37,34 @@ import { downloadText } from "@/lib/download";
 import { isAdmin } from "@/lib/permissions";
 import { useLoadEffect } from "@/hooks/use-load-effect";
 
+/** Sample rules for demo mode. */
+const DEMO_RULES: Awaited<ReturnType<typeof api.listPolicies>> = [
+  {
+    id: "demo-deny-premium",
+    name: "Block premium models org-wide",
+    type: "MODEL_DENY_LIST",
+    scope: "ORGANIZATION",
+    enabled: true,
+    config: { models: ["gpt-4o", "o3-mini"] },
+    team: null,
+  },
+  {
+    id: "demo-allow-support",
+    name: "Support team: approved models only",
+    type: "MODEL_ALLOW_LIST",
+    scope: "TEAM",
+    enabled: true,
+    config: { models: ["gpt-4o-mini", "claude-haiku"] },
+    team: { name: "Support" },
+  },
+];
+
 export default function PoliciesPage() {
   const { apiMode, session } = useAuth();
   const admin = isAdmin(session?.user.role ?? "VIEWER");
   const [rules, setRules] = useState<
     Awaited<ReturnType<typeof api.listPolicies>>
-  >([]);
+  >(apiMode ? [] : DEMO_RULES);
   const [enforcement, setEnforcement] = useState<"MONITORING" | "HARD_CAP">(
     "MONITORING"
   );
@@ -60,6 +82,10 @@ export default function PoliciesPage() {
     models: string;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [enforcementError, setEnforcementError] = useState<string | null>(null);
   const [form, setForm] = useState<{
     name: string;
     type: "MODEL_DENY_LIST" | "MODEL_ALLOW_LIST" | "BUDGET_HARD_CAP";
@@ -83,19 +109,47 @@ export default function PoliciesPage() {
   useLoadEffect(load, [load]);
 
   async function toggleEnforcement(mode: "MONITORING" | "HARD_CAP") {
-    await api.setEnforcement(mode);
+    const previous = enforcement;
+    setEnforcementError(null);
     setEnforcement(mode);
+    try {
+      await api.setEnforcement(mode);
+    } catch (e) {
+      setEnforcement(previous);
+      setEnforcementError(
+        e instanceof Error ? e.message : "Could not update enforcement."
+      );
+    }
   }
 
   async function handleCreate() {
+    if (!form.name.trim()) {
+      setFormError("Policy name is required.");
+      return;
+    }
     const models = form.models.split(",").map((m) => m.trim()).filter(Boolean);
-    await api.createPolicy({
-      name: form.name,
-      type: form.type,
-      config: { models },
-    });
-    setOpen(false);
-    await load();
+    if (form.type !== "BUDGET_HARD_CAP" && models.length === 0) {
+      setFormError("Add at least one model.");
+      return;
+    }
+    setFormError(null);
+    setCreating(true);
+    try {
+      await api.createPolicy({
+        name: form.name.trim(),
+        type: form.type,
+        config: { models },
+      });
+      setOpen(false);
+      setForm({ name: "", type: "MODEL_DENY_LIST", models: "gpt-4o" });
+      await load();
+    } catch (e) {
+      setFormError(
+        e instanceof Error ? e.message : "Could not create policy. Try again."
+      );
+    } finally {
+      setCreating(false);
+    }
   }
 
   async function handleExportYaml() {
@@ -104,17 +158,30 @@ export default function PoliciesPage() {
   }
 
   async function handleImportYaml() {
+    if (!yamlText.trim()) {
+      setImportMessage("Paste a YAML document to import.");
+      return;
+    }
     setImportMessage(null);
-    const res = await api.importPoliciesYaml(yamlText, importMode);
-    setImportMessage(
-      res.errors.length > 0
-        ? `Imported ${res.imported} rules. Errors: ${res.errors.join("; ")}`
-        : `Imported ${res.imported} rules (${res.mode})`
-    );
-    if (res.imported > 0) {
-      setImportOpen(false);
-      setYamlText("");
-      await load();
+    setImporting(true);
+    try {
+      const res = await api.importPoliciesYaml(yamlText, importMode);
+      setImportMessage(
+        res.errors.length > 0
+          ? `Imported ${res.imported} rules. Errors: ${res.errors.join("; ")}`
+          : `Imported ${res.imported} rules (${res.mode})`
+      );
+      if (res.imported > 0) {
+        setImportOpen(false);
+        setYamlText("");
+        await load();
+      }
+    } catch (e) {
+      setImportMessage(
+        e instanceof Error ? e.message : "Import failed. Check your YAML."
+      );
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -226,8 +293,12 @@ rules:
                 {importMessage && (
                   <p className="text-sm text-muted-foreground">{importMessage}</p>
                 )}
-                <Button className="w-full" onClick={handleImportYaml}>
-                  Import
+                <Button
+                  className="w-full"
+                  disabled={importing}
+                  onClick={handleImportYaml}
+                >
+                  {importing ? "Importing…" : "Import"}
                 </Button>
               </div>
             </DialogContent>
@@ -284,8 +355,15 @@ rules:
                     />
                   </div>
                 )}
-                <Button className="w-full" onClick={handleCreate}>
-                  Create policy
+                {formError && (
+                  <p className="text-sm text-destructive">{formError}</p>
+                )}
+                <Button
+                  className="w-full"
+                  disabled={creating}
+                  onClick={handleCreate}
+                >
+                  {creating ? "Creating…" : "Create policy"}
                 </Button>
               </div>
             </DialogContent>
@@ -301,26 +379,39 @@ rules:
             Budget enforcement
           </CardTitle>
           <CardDescription>
-            Monitoring-only (MVP) vs hard cap blocks gateway requests at 100% budget
+            Monitoring alerts when budgets are exceeded; hard cap blocks
+            gateway requests once a budget reaches 100%
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button
-            variant={enforcement === "MONITORING" ? "default" : "outline"}
-            size="sm"
-            disabled={!admin || !apiMode}
-            onClick={() => toggleEnforcement("MONITORING")}
-          >
-            Monitoring only
-          </Button>
-          <Button
-            variant={enforcement === "HARD_CAP" ? "default" : "outline"}
-            size="sm"
-            disabled={!admin || !apiMode}
-            onClick={() => toggleEnforcement("HARD_CAP")}
-          >
-            Hard cap (block)
-          </Button>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={enforcement === "MONITORING" ? "default" : "outline"}
+              size="sm"
+              disabled={!admin || !apiMode}
+              onClick={() => toggleEnforcement("MONITORING")}
+            >
+              Monitoring only
+            </Button>
+            <Button
+              variant={enforcement === "HARD_CAP" ? "default" : "outline"}
+              size="sm"
+              disabled={!admin || !apiMode}
+              onClick={() => toggleEnforcement("HARD_CAP")}
+            >
+              Hard cap (block)
+            </Button>
+          </div>
+          {enforcementError && (
+            <p className="text-sm text-destructive">{enforcementError}</p>
+          )}
+          {(!apiMode || !admin) && (
+            <p className="text-xs text-muted-foreground">
+              {apiMode
+                ? "Only admins can change enforcement."
+                : "Demo mode: sample policies shown. Sign in with the API connected to manage enforcement."}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -355,7 +446,7 @@ rules:
                   </p>
                 )}
               </div>
-              {admin && (
+              {admin && apiMode && (
                 <div className="flex shrink-0 items-center gap-2">
                   <Switch
                     checked={rule.enabled}

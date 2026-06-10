@@ -17,15 +17,19 @@ export function LandingProductBleed() {
   const [activeTab, setActiveTab] = useState<"overview" | "usage" | "budgets" | "providers">("overview");
 
   return (
-    <section id="product" className="scroll-mt-20 border-b border-border/70 py-16 sm:py-24 lg:py-28 bg-card/10">
+    <section id="product" className="scroll-mt-20 border-b border-border/70 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
+        <div className="mb-10 flex items-baseline gap-4">
+          <span className="ledger-index">§ 02</span>
+          <span className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {LANDING.bleedEyebrow}
+          </span>
+          <span aria-hidden className="h-px flex-1 self-center bg-border" />
+        </div>
         <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-16">
           <div className="lg:sticky lg:top-28">
-            <p className="landing-eyebrow text-foreground/70">{LANDING.bleedEyebrow}</p>
-            <h2 className="landing-headline mt-3 text-3xl sm:text-4xl leading-tight">
-              {LANDING.bleedTitle}
-            </h2>
-            <p className="mt-4 max-w-md text-base leading-relaxed text-muted-foreground">
+            <h2 className="landing-headline">{LANDING.bleedTitle}</h2>
+            <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground">
               {LANDING.bleedLead}
             </p>
             <ul className="mt-8 flex flex-col gap-3.5">
@@ -50,9 +54,9 @@ export function LandingProductBleed() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-px ${
+                    className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors ${
                       active
-                        ? "border-primary text-primary bg-card"
+                        ? "border-foreground text-foreground"
                         : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >

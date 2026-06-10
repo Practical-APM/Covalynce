@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { AlertsModule } from '../alerts/alerts.module';
 import { AuditModule } from '../audit/audit.module';
+import { InstanceSettingsModule } from '../instance-settings/instance-settings.module';
 import { RbacModule } from '../rbac/rbac.module';
 import { AuthBootstrapService } from './auth-bootstrap.service';
 import { AuthController } from './auth.controller';
@@ -17,6 +18,7 @@ import { SsoService } from './sso.service';
     JwtAuthModule,
     AuditModule,
     AlertsModule,
+    InstanceSettingsModule,
     forwardRef(() => RbacModule),
   ],
   controllers: [AuthController, SsoController],

@@ -43,6 +43,9 @@ export default function AgentsPage() {
     Awaited<ReturnType<typeof api.listAgents>>[number] | null
   >(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(apiMode);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -57,22 +60,44 @@ export default function AgentsPage() {
 
   const load = useCallback(async () => {
     if (!apiMode) return;
-    setAgents(await api.listAgents());
+    setLoading(true);
+    try {
+      setAgents(await api.listAgents());
+    } finally {
+      setLoading(false);
+    }
   }, [apiMode]);
 
   useLoadEffect(load, [load]);
 
   async function handleCreate() {
-    await api.createAgent({
-      name: form.name,
-      slug: form.slug || undefined,
-      monthlyBudget: form.monthlyBudget
-        ? Number(form.monthlyBudget)
-        : undefined,
-    });
-    setOpen(false);
-    setForm({ name: "", slug: "", monthlyBudget: "" });
-    await load();
+    if (!form.name.trim()) {
+      setFormError("Agent name is required.");
+      return;
+    }
+    const budget = form.monthlyBudget ? Number(form.monthlyBudget) : undefined;
+    if (budget !== undefined && (!Number.isFinite(budget) || budget <= 0)) {
+      setFormError("Monthly budget must be a positive number.");
+      return;
+    }
+    setFormError(null);
+    setSaving(true);
+    try {
+      await api.createAgent({
+        name: form.name.trim(),
+        slug: form.slug.trim() || undefined,
+        monthlyBudget: budget,
+      });
+      setOpen(false);
+      setForm({ name: "", slug: "", monthlyBudget: "" });
+      await load();
+    } catch (e) {
+      setFormError(
+        e instanceof Error ? e.message : "Could not create the agent. Try again."
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   function openEdit(agent: Awaited<ReturnType<typeof api.listAgents>>[number]) {
@@ -87,17 +112,27 @@ export default function AgentsPage() {
   }
 
   async function handleSaveEdit() {
+    const budget = editForm.monthlyBudget
+      ? Number(editForm.monthlyBudget)
+      : null;
+    if (budget !== null && (!Number.isFinite(budget) || budget <= 0)) {
+      setEditError("Monthly budget must be a positive number.");
+      return;
+    }
+    setEditError(null);
     setSaving(true);
     try {
       await api.updateAgent(editForm.id, {
         description: editForm.description || undefined,
-        monthlyBudget: editForm.monthlyBudget
-          ? Number(editForm.monthlyBudget)
-          : null,
+        monthlyBudget: budget,
         enabled: editForm.enabled,
       });
       setEditOpen(false);
       await load();
+    } catch (e) {
+      setEditError(
+        e instanceof Error ? e.message : "Could not update agent. Try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -164,8 +199,15 @@ export default function AgentsPage() {
                     placeholder="500"
                   />
                 </div>
-                <Button className="w-full" onClick={handleCreate}>
-                  Create agent
+                {formError && (
+                  <p className="text-sm text-destructive">{formError}</p>
+                )}
+                <Button
+                  className="w-full"
+                  disabled={saving}
+                  onClick={handleCreate}
+                >
+                  {saving ? "Creating…" : "Create agent"}
                 </Button>
               </div>
             </DialogContent>
@@ -173,7 +215,11 @@ export default function AgentsPage() {
         )}
       </PageHeader>
 
-      {apiMode && agents.length === 0 && (
+      {apiMode && loading && agents.length === 0 && (
+        <p className="text-sm text-muted-foreground">Loading agents…</p>
+      )}
+
+      {apiMode && !loading && agents.length === 0 && (
         <EmptyState
           icon={Bot}
           title="No agents registered"
@@ -292,6 +338,9 @@ export default function AgentsPage() {
                 }
               />
             </div>
+            {editError && (
+              <p className="text-sm text-destructive">{editError}</p>
+            )}
             <Button className="w-full" disabled={saving} onClick={handleSaveEdit}>
               {saving ? "Saving…" : "Save changes"}
             </Button>

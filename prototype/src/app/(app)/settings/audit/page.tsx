@@ -52,6 +52,7 @@ export default function SettingsAuditPage() {
   const role = session?.user.role ?? "VIEWER";
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -89,12 +90,17 @@ export default function SettingsAuditPage() {
 
   async function handleComplianceExport() {
     if (!apiMode) return;
+    setExportError(null);
     setExporting(true);
     try {
       const bundle = await api.exportComplianceBundle(30);
       for (const file of bundle.files) {
         downloadText(file.filename, file.content, "text/csv;charset=utf-8");
       }
+    } catch (e) {
+      setExportError(
+        e instanceof Error ? e.message : "Compliance export failed."
+      );
     } finally {
       setExporting(false);
     }
@@ -136,6 +142,10 @@ export default function SettingsAuditPage() {
           </Button>
         )}
       </PageHeader>
+
+      {exportError && (
+        <p className="text-sm text-destructive">{exportError}</p>
+      )}
 
       <Card>
         <CardHeader>

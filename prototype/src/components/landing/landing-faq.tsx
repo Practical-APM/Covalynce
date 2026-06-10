@@ -12,31 +12,32 @@ export function LandingFaqSection() {
   return (
     <LandingSection
       id="faq"
+      index="§ 07"
       eyebrow={LANDING.faqEyebrow}
       title={LANDING.faqTitle}
-      align="center"
       border="top"
-      className="py-16 sm:py-24 bg-card/5"
     >
-      <div className="mx-auto max-w-3xl divide-y divide-border border-y border-border">
+      <div className="max-w-3xl border-t-2 border-foreground/80">
         {FAQ_ITEMS.map((item, i) => {
           const isOpen = open === i;
           return (
-            <div key={item.q} className="overflow-hidden">
+            <div key={item.q} className="border-b border-border">
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : i)}
-                className="flex w-full items-center justify-between gap-4 py-5 text-left hover:text-primary transition-colors"
+                aria-expanded={isOpen}
+                className="grid w-full grid-cols-[3rem_1fr_auto] items-baseline gap-x-2 py-5 text-left transition-colors hover:bg-muted/40"
               >
-                <span className="text-sm sm:text-base font-semibold leading-snug text-foreground">
+                <span className="ledger-index">{String(i + 1).padStart(2, "0")}</span>
+                <span className="text-sm font-semibold leading-snug text-foreground sm:text-base">
                   {item.q}
                 </span>
                 <span
-                  className={cn(
-                    "flex size-5 shrink-0 items-center justify-center border border-border text-[10px] font-bold transition-all duration-300 rounded-none bg-card",
-                    isOpen && "border-primary text-primary bg-primary/5 rotate-180"
-                  )}
                   aria-hidden
+                  className={cn(
+                    "pr-1 font-mono text-base text-muted-foreground transition-colors",
+                    isOpen && "text-foreground"
+                  )}
                 >
                   {isOpen ? "−" : "+"}
                 </span>
@@ -47,11 +48,12 @@ export function LandingFaqSection() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                     className="overflow-hidden"
                   >
-                    <p className="pb-6 text-sm leading-relaxed text-muted-foreground pr-8">
-                      {item.a}
+                    <p className="grid grid-cols-[3rem_1fr] gap-x-2 pb-6 text-sm leading-relaxed text-muted-foreground">
+                      <span aria-hidden />
+                      <span className="pr-8">{item.a}</span>
                     </p>
                   </motion.div>
                 )}

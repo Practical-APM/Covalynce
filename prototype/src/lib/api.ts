@@ -122,6 +122,29 @@ export type OrgMember = {
   createdAt: string;
 };
 
+export type InstanceSettingItem = {
+  key: string;
+  label: string;
+  group: "email" | "oauth_openai" | "oauth_anthropic" | "oauth_google";
+  secret: boolean;
+  placeholder: string | null;
+  helpAnchor: string | null;
+  source: "database" | "environment" | "none";
+  preview: string | null;
+  updatedAt: string | null;
+};
+
+export type InstanceStatus = {
+  databaseConnected: boolean;
+  authMode: string;
+  nodeEnv: string;
+  jwtSecret: { set: boolean; isDefault: boolean };
+  encryptionKey: { set: boolean; isDefault: boolean };
+  emailConfigured: boolean;
+  frontendUrl: string | null;
+  corsOrigin: string | null;
+};
+
 export const api = {
   health: () => apiFetch<{ status: string }>("/api/v1/health", { auth: false }),
 
@@ -133,6 +156,15 @@ export const api = {
       ssoRequired: boolean;
       emailDeliveryConfigured: boolean;
     }>("/api/v1/auth/config", { auth: false }),
+
+  updateOrganization: (id: string, body: { name: string }) =>
+    apiFetch<{ id: string; name: string; slug: string; plan: string }>(
+      `/api/v1/organizations/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }
+    ),
 
   createOrganization: (body: {
     name: string;
@@ -243,6 +275,35 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
+
+  getInstanceSettings: () =>
+    apiFetch<{ settings: InstanceSettingItem[]; status: InstanceStatus }>(
+      "/api/v1/instance-settings"
+    ),
+
+  updateInstanceSettings: (values: Record<string, string | null>) =>
+    apiFetch<{ updated: string[]; settings: InstanceSettingItem[] }>(
+      "/api/v1/instance-settings",
+      {
+        method: "PUT",
+        body: JSON.stringify({ values }),
+      }
+    ),
+
+  sendInstanceTestEmail: (to?: string) =>
+    apiFetch<{ sent: boolean; status?: number; error?: string }>(
+      "/api/v1/instance-settings/test-email",
+      {
+        method: "POST",
+        body: JSON.stringify(to ? { to } : {}),
+      }
+    ),
+
+  revokeAllSessions: () =>
+    apiFetch<{ ok: boolean; revokedSessions: number; invalidatedLinks: number }>(
+      "/api/v1/auth/sessions/revoke-all",
+      { method: "POST" }
+    ),
 
   getRbacMatrix: () =>
     apiFetch<{

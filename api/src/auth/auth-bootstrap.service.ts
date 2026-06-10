@@ -11,7 +11,7 @@ export class AuthBootstrapService implements OnModuleInit {
     private readonly authMode: AuthModeService,
   ) {}
 
-  onModuleInit() {
+  async onModuleInit() {
     const mode = this.authMode.getMode();
     const jwtSecret =
       this.config.get<string>('JWT_SECRET') ?? 'covalynce-dev-secret-change-me';
@@ -25,9 +25,9 @@ export class AuthBootstrapService implements OnModuleInit {
       );
     }
 
-    if (mode === 'magic_link' && !this.authMode.isEmailConfigured()) {
+    if (mode === 'magic_link' && !(await this.authMode.isEmailConfigured())) {
       this.logger.warn(
-        'AUTH_MODE=magic_link but RESEND_API_KEY is not set — magic links will be logged to console only.',
+        'AUTH_MODE=magic_link but no Resend API key is configured (env or Settings → Self-host) — magic links will be logged to console only.',
       );
     }
 

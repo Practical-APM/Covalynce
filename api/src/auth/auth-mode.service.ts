@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InstanceSettingsService } from '../instance-settings/instance-settings.service';
 
 export type AuthMode = 'dev_passwordless' | 'magic_link' | 'sso_required';
 
 @Injectable()
 export class AuthModeService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly instanceSettings: InstanceSettingsService,
+  ) {}
 
   getMode(): AuthMode {
     const explicit = this.config.get<string>('AUTH_MODE');
@@ -33,8 +37,8 @@ export class AuthModeService {
     return this.getMode() === 'sso_required';
   }
 
-  isEmailConfigured() {
-    return Boolean(this.config.get<string>('RESEND_API_KEY'));
+  async isEmailConfigured() {
+    return Boolean(await this.instanceSettings.getValue('RESEND_API_KEY'));
   }
 
   getFrontendUrl() {

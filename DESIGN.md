@@ -1,49 +1,61 @@
-# Covalynce — Design System v3
+# Covalynce — Design System v4
 
-**Status:** Ivory · Sharp · Landing + app unified  
+**Status:** Obsidian · Neon · Ledger  
 **Last updated:** June 2026
 
 ## Principles
 
-- **Ivory canvas** — warm `oklch(0.955 0.022 78)`, not clinical white
-- **Sharp** — `--radius: 0.125rem`, 1px borders, no soft shadows or glows
-- **One accent** — ink indigo `oklch(0.38 0.14 258)` for CTAs and active UI
-- **Copy** — short, SEO in metadata; on-page text is punchy, not explanatory
+- **The page is a ledger** — indexed sections (`§ 01`), hairline rules, tabular mono figures. Structure comes from lines, not boxes.
+- **Committed color** — obsidian (`#030304`) drenches the first fold and the closing CTA; the body is cool pearl paper; neon (`#66FCF1`) is the single electric accent, used sparingly as the "active row" color.
+- **Sharp** — `--radius: 0.125rem`, 1px borders, heavy `border-t-2` leading rules on lists and tables.
+- **No identical card grids, no icon-above-heading tiles, no side-stripe accents.**
 
 ## Color
 
 | Role | Token |
 |------|--------|
-| Canvas | `--background` ivory |
-| Card | `--card` lighter ivory |
-| Border | `--border` warm gray, high contrast |
-| Text | `--foreground` near-black ink |
-| Accent | `--primary` |
+| Canvas (light) | `--background` cool pearl `oklch(0.965 0.007 195)` |
+| Ink band (always dark) | `[data-surface="section-ink"]` obsidian, neon primary — closing CTA only |
+| Ink band (adaptive) | `.landing-ink-adaptive` — paper in light mode, obsidian in dark — header + hero |
+| Text | `--foreground` near-black, teal-tinted |
+| Accent | `--landing-accent` teal (light) / `--brand-neon` (dark, ink) |
+| Logo mark | `--brand-mark` obsidian on light, neon on dark |
 
-Marketing ink band: `[data-surface="section-ink"]` for final CTA.
+Landing scope: `[data-surface="landing"]`. The theme toggle is real: light mode reads as a printed statement (paper everywhere except the obsidian closing CTA); dark mode is the full obsidian drench.
 
 ## Typography
 
 | Use | Font |
 |-----|------|
+| Display / headlines / metrics | Archivo (`--font-archivo`, `.font-display`, weight 600, -0.035em) |
 | UI & body | Inter |
-| Landing headlines | Instrument Serif (`.font-display`, `.landing-headline`) |
-| Metrics / API | JetBrains Mono |
+| Figures, labels, section indexes | JetBrains Mono (tabular) |
 
-App `PageHeader` stays Inter.
+Headlines use `.landing-headline`: `clamp(2.125rem, 1.3rem + 3vw, 3.625rem)`.
 
-## Landing structure
+## Ledger utilities (`globals.css`, global — shared by landing and app)
 
-1. Hero — headline + product
-2. Provider logo grid (6 marks, live / gateway / roadmap)
-3. Full-bleed product band
-4. Platform capabilities (2×2 sharp grid + diagrams)
-5. FAQ
-6. Ink CTA
+- `.ledger-index` — mono section/row index, accent colored
+- `.ledger-value` — tabular mono figure
+- `.ledger-label` — mono uppercase micro-label (metric cards, sidebar groups)
+- `.ledger-leader` — dotted leader between label and value
+- `.ledger-lines` — faint ruled-paper background (landing scope)
+- `.ink-glow` — radial top glow, opt-in for ink bands
+
+App alignment: `.page-title` is Archivo; metric card labels and sidebar group
+labels use `.ledger-label`; metric values are tabular mono.
+
+## Landing structure (single pass)
+
+§ 00 Hero (ink, asymmetric: headline left, product right) + proof ledger strip
+→ § 01 Problem → § 02 Product (tabbed window) → § 03 How it works (ruled columns)
+→ § 04 Platform (selector rail + pinned diagram) → § 05 Integrations (provider table)
+→ § 06 Audience (ruled persona columns) → § 07 FAQ → § 08 Closing entry (ink CTA)
 
 ## Files
 
-- Tokens: `prototype/src/app/globals.css`
+- Tokens + utilities: `prototype/src/app/globals.css`
 - Copy + SEO: `prototype/src/lib/landing-copy.ts`
-- Logos: `prototype/src/components/landing/svg/provider-logos.tsx`
+- Section shell: `prototype/src/components/landing/landing-section.tsx`
 - Page: `prototype/src/components/landing/landing-page-client.tsx`
+- Brand mark: `prototype/src/components/brand/covalynce-mark-svg.tsx` (adaptive / tile / neon)

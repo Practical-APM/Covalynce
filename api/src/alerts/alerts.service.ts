@@ -48,7 +48,7 @@ export class AlertsService {
     return { updated: true };
   }
 
-  private enrichSettings(
+  private async enrichSettings(
     settings: Awaited<ReturnType<PrismaService['alertSetting']['findUnique']>>,
     organizationId: string,
   ) {
@@ -64,7 +64,7 @@ export class AlertsService {
       lastSlackDeliveryAt: settings?.lastSlackDeliveryAt ?? null,
       lastSlackDeliveryStatus: settings?.lastSlackDeliveryStatus ?? null,
       lastSlackDeliveryError: settings?.lastSlackDeliveryError ?? null,
-      emailDeliveryConfigured: this.notifications.isEmailConfigured(),
+      emailDeliveryConfigured: await this.notifications.isEmailConfigured(),
     };
   }
 

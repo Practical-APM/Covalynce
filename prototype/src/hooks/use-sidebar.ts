@@ -11,12 +11,14 @@ export function useSidebar() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      setPinned(localStorage.getItem(PIN_KEY) === "true");
-    } catch {
-      /* ignore */
-    }
-    queueMicrotask(() => setHydrated(true));
+    queueMicrotask(() => {
+      try {
+        setPinned(localStorage.getItem(PIN_KEY) === "true");
+      } catch {
+        /* ignore */
+      }
+      setHydrated(true);
+    });
   }, []);
 
   /** Desktop: expanded when hovered or pinned; mobile sheet always full width */

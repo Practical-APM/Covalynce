@@ -7,6 +7,7 @@ import {
   Plug,
   Rocket,
   Route,
+  ServerCog,
   Shield,
   Wallet,
 } from "lucide-react";
@@ -33,6 +34,12 @@ export const docsNav: HelpNavGroup[] = [
         label: "Getting started",
         description: "~5 min setup",
         icon: Rocket,
+      },
+      {
+        href: "/help/self-host",
+        label: "Self-host guide",
+        description: "Your servers, your data",
+        icon: ServerCog,
       },
       {
         href: "/help/concepts",
@@ -122,6 +129,12 @@ export const helpTasks = [
     title: "Set up my workspace",
     description: "Create an org, connect a provider, see spend on Overview.",
     time: "5 min",
+  },
+  {
+    href: "/help/self-host",
+    title: "Self-host on my infrastructure",
+    description: "Docker Compose, your database, your credentials. Truly yours.",
+    time: "15 min",
   },
   {
     href: "/help/features/providers",
@@ -257,9 +270,15 @@ export const glossaryTerms = [
 
 export const pageRelated: Record<string, { href: string; label: string }[]> = {
   "/help/getting-started": [
+    { href: "/help/self-host", label: "Self-host guide" },
     { href: "/help/features/providers", label: "Providers" },
     { href: "/help/concepts", label: "Glossary" },
     { href: "/dashboard", label: "Open Overview" },
+  ],
+  "/help/self-host": [
+    { href: "/settings/self-host", label: "Self-host settings" },
+    { href: "/help/getting-started", label: "Getting started" },
+    { href: "/help/editions", label: "Community vs Enterprise" },
   ],
   "/help/features/overview": [
     { href: "/help/features/providers", label: "Connect providers" },

@@ -81,7 +81,9 @@ export default function AlertSettingsPage() {
       setMessage("Settings saved.");
       await load();
     } catch (e) {
-      setMessage(String(e));
+      setMessage(
+        e instanceof Error ? e.message : "Could not save alert settings."
+      );
     } finally {
       setSaving(false);
     }
@@ -102,7 +104,9 @@ export default function AlertSettingsPage() {
       }
       await load();
     } catch (e) {
-      setMessage(String(e));
+      setMessage(
+        e instanceof Error ? e.message : "Could not save alert settings."
+      );
     } finally {
       setTesting(false);
     }
@@ -131,6 +135,13 @@ export default function AlertSettingsPage() {
         </Card>
       )}
 
+      {!apiMode && (
+        <p className="text-xs text-muted-foreground">
+          Demo mode: settings shown with sample values. Connect the API to save
+          thresholds and send real notifications.
+        </p>
+      )}
+
       {message && (
         <p className="text-sm text-muted-foreground">{message}</p>
       )}
@@ -149,6 +160,7 @@ export default function AlertSettingsPage() {
               min={50}
               max={100}
               value={threshold}
+              disabled={!apiMode || !admin}
               onChange={(e) => setThreshold(Number(e.target.value))}
             />
           </div>
@@ -170,6 +182,7 @@ export default function AlertSettingsPage() {
               id="webhook"
               placeholder="https://hooks.slack.com/services/..."
               value={slackWebhook}
+              disabled={!apiMode || !admin}
               onChange={(e) => setSlackWebhook(e.target.value)}
             />
           </div>
@@ -201,11 +214,24 @@ export default function AlertSettingsPage() {
         </CardHeader>
         <CardContent className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            {emailEnabled
-              ? delivery?.emailDeliveryConfigured
-                ? "Enabled · emails sent to admins via Resend"
-                : "Enabled · set RESEND_API_KEY on API to send real email"
-              : "Disabled"}
+            {emailEnabled ? (
+              delivery?.emailDeliveryConfigured ? (
+                "Enabled · emails sent to admins via Resend"
+              ) : (
+                <>
+                  Enabled · add a Resend key in{" "}
+                  <Link
+                    href="/settings/self-host"
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    Settings → Self-host
+                  </Link>{" "}
+                  to send real email
+                </>
+              )
+            ) : (
+              "Disabled"
+            )}
           </p>
           {delivery && (
             <p className="text-xs text-muted-foreground">

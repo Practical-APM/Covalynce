@@ -199,7 +199,7 @@ export function AppSidebar({
       <nav className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-2">
         <div>
           {!collapsed && (
-            <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="ledger-label mb-1.5 px-2.5">
               Analytics
             </p>
           )}
@@ -216,7 +216,7 @@ export function AppSidebar({
         </div>
         <div>
           {!collapsed && (
-            <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="ledger-label mb-1.5 px-2.5">
               Control
             </p>
           )}

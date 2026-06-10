@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { KeyRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -35,8 +36,20 @@ export default function SettingsSsoPage() {
   const ssoAllowed = hasEnterpriseFeature("sso");
   const [config, setConfig] = useState<
     Awaited<ReturnType<typeof api.getSsoConfig>> | null
-  >(null);
+  >(
+    apiMode
+      ? null
+      : {
+          provider: "NONE",
+          enabled: false,
+          issuerUrl: null,
+          jwksUri: null,
+          audience: null,
+          allowedEmailDomains: [],
+        }
+  );
   const [domains, setDomains] = useState("");
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -51,19 +64,30 @@ export default function SettingsSsoPage() {
   async function handleSave() {
     if (!config) return;
     setMessage(null);
-    await api.updateSsoConfig({
-      provider: config.provider,
-      enabled: config.enabled,
-      issuerUrl: config.issuerUrl ?? undefined,
-      jwksUri: config.jwksUri ?? undefined,
-      audience: config.audience ?? undefined,
-      allowedEmailDomains: domains
-        .split(",")
-        .map((d) => d.trim())
-        .filter(Boolean),
-    });
-    setMessage("SSO configuration saved");
-    await load();
+    if (!apiMode) {
+      setMessage("Saved (demo mode: not persisted).");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.updateSsoConfig({
+        provider: config.provider,
+        enabled: config.enabled,
+        issuerUrl: config.issuerUrl ?? undefined,
+        jwksUri: config.jwksUri ?? undefined,
+        audience: config.audience ?? undefined,
+        allowedEmailDomains: domains
+          .split(",")
+          .map((d) => d.trim())
+          .filter(Boolean),
+      });
+      setMessage("SSO configuration saved");
+      await load();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Failed to save SSO config");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (apiMode && !admin) {
@@ -78,6 +102,13 @@ export default function SettingsSsoPage() {
         title="Single sign-on"
         description="Clerk or Auth0 OIDC — JWT validated via JWKS, mapped to invited users"
       />
+
+      {!apiMode && (
+        <p className="text-xs text-muted-foreground">
+          Demo mode: SSO fields are read-only samples. Enterprise unlocks live IdP
+          configuration.
+        </p>
+      )}
 
       {apiMode && admin && !ssoAllowed && (
         <Card>
@@ -104,7 +135,13 @@ export default function SettingsSsoPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>1. Set <code>AUTH_MODE=magic_link</code> (or <code>sso_required</code>) on the API.</p>
-            <p>2. Configure <code>RESEND_API_KEY</code> for magic links and invites.</p>
+            <p>
+              2. Add a Resend API key in{" "}
+              <Link href="/settings/self-host" className="underline underline-offset-2">
+                Settings → Self-host
+              </Link>{" "}
+              for magic links and invites.
+            </p>
             <p>3. Set a strong <code>JWT_SECRET</code> — not the default placeholder.</p>
             <p>4. Disable <code>SSO_MOCK_ENABLED</code> and register your IdP issuer + JWKS below.</p>
             <p>5. Invite users before they attempt SSO — unknown emails are rejected.</p>
@@ -112,6 +149,7 @@ export default function SettingsSsoPage() {
         </Card>
       )}
 
+      {(config || !apiMode) && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -131,6 +169,7 @@ export default function SettingsSsoPage() {
                 <Switch
                   id="sso-enabled"
                   checked={config.enabled}
+                  disabled={!apiMode || !ssoAllowed}
                   onCheckedChange={(enabled) =>
                     setConfig({ ...config, enabled })
                   }
@@ -191,7 +230,12 @@ export default function SettingsSsoPage() {
                   placeholder="company.com, subsidiary.com"
                 />
               </div>
-              <Button onClick={handleSave}>Save SSO settings</Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving || !apiMode || (apiMode && !ssoAllowed)}
+              >
+                {saving ? "Saving…" : "Save SSO settings"}
+              </Button>
               {message && (
                 <p className="text-sm text-muted-foreground">{message}</p>
               )}
@@ -199,6 +243,7 @@ export default function SettingsSsoPage() {
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

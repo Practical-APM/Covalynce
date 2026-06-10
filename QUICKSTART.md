@@ -65,6 +65,11 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
 Web: http://localhost:3000 · API: http://localhost:3001
 
+Runtime credentials (Resend email, provider OAuth apps) can be added later from
+**Settings → Self-host** in the app — stored AES-256 encrypted in your own
+Postgres, no restart needed. The in-app guide at **Help → Self-host guide**
+walks through fetching every credential.
+
 ## Troubleshooting
 
 | Issue | Fix |

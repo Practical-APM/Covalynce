@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
 import { PageHeader } from "@/components/page-header";
 import { EditionBadge } from "@/components/edition-badge";
-import { Button } from "@/components/ui/button";
+import { LinkButton } from "@/components/link-button";
 import {
   Card,
   CardContent,
@@ -30,8 +30,8 @@ export default function SettingsBillingPage() {
   const plan = org.plan ?? "community";
   const edition = planToEdition(plan);
   const ed = EDITION_COMPARISON[edition];
-  const [totalSpend, setTotalSpend] = useState(
-    apiMode ? 0 : mockOrg.totalSpend
+  const [totalSpend, setTotalSpend] = useState<number | null>(
+    apiMode ? null : mockOrg.totalSpend
   );
 
   const load = useCallback(async () => {
@@ -84,9 +84,9 @@ export default function SettingsBillingPage() {
               is available when you need SSO or compliance exports.
             </p>
           ) : (
-            <Button variant="outline" disabled>
+            <LinkButton variant="outline" href="mailto:sales@covalynce.io?subject=Enterprise%20Edition">
               Contact sales to change edition
-            </Button>
+            </LinkButton>
           )}
         </CardContent>
       </Card>
@@ -100,7 +100,7 @@ export default function SettingsBillingPage() {
         </CardHeader>
         <CardContent>
           <p className="font-mono text-3xl font-semibold">
-            {formatCurrency(totalSpend)}
+            {totalSpend === null ? "—" : formatCurrency(totalSpend)}
           </p>
           <p className="text-sm text-muted-foreground">Month to date</p>
         </CardContent>

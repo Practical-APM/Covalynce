@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthModeService } from './auth-mode.service';
 import { LoginDto } from './dto/login.dto';
@@ -22,9 +23,10 @@ export class AuthService {
     private readonly authMode: AuthModeService,
     private readonly magicLink: MagicLinkService,
     private readonly refreshTokens: RefreshTokenService,
+    private readonly audit: AuditService,
   ) {}
 
-  getPublicConfig() {
+  async getPublicConfig() {
     return {
       mode: this.authMode.getMode(),
       passwordlessLoginAllowed: this.authMode.allowsPasswordlessLogin(),
@@ -32,7 +34,7 @@ export class AuthService {
         this.authMode.requiresMagicLink() ||
         this.authMode.getMode() === 'magic_link',
       ssoRequired: this.authMode.requiresSso(),
-      emailDeliveryConfigured: this.authMode.isEmailConfigured(),
+      emailDeliveryConfigured: await this.authMode.isEmailConfigured(),
     };
   }
 
@@ -136,6 +138,41 @@ export class AuthService {
       await this.refreshTokens.revoke(refreshToken);
     }
     return { ok: true };
+  }
+
+  /**
+   * Credential reset: revokes every refresh token and invalidates pending
+   * sign-in links for the user. The current access token expires naturally
+   * (15 minute TTL); the next session requires a fresh sign-in.
+   */
+  async revokeAllSessions(user: {
+    userId: string;
+    organizationId: string;
+  }) {
+    const revokedSessions = await this.refreshTokens.revokeAllForUser(
+      user.userId,
+    );
+    const invalidatedLinks = await this.prisma.magicLinkToken.updateMany({
+      where: { userId: user.userId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    await this.audit.log(user.organizationId, {
+      actorUserId: user.userId,
+      action: 'auth.sessions_revoked',
+      resource: 'user',
+      resourceId: user.userId,
+      metadata: {
+        revokedSessions,
+        invalidatedLinks: invalidatedLinks.count,
+      },
+    });
+
+    return {
+      ok: true,
+      revokedSessions,
+      invalidatedLinks: invalidatedLinks.count,
+    };
   }
 
   async listMemberships(userId: string) {

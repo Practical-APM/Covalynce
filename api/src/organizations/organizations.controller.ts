@@ -4,20 +4,24 @@ import {
   ForbiddenException,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
+import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { PermissionsGuard } from '../rbac/permissions.guard';
 import { RequirePermission } from '../rbac/require-permission.decorator';
 import { InviteUserDto } from '../users/dto/invite-user.dto';
 import { UsersService } from '../users/users.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
+import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { OrganizationsService } from './organizations.service';
 
 @ApiTags('organizations')
@@ -43,6 +47,21 @@ export class OrganizationsController {
       throw new ForbiddenException('Cannot access another organization');
     }
     return this.organizationsService.findById(id);
+  }
+
+  @Patch(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  update(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdateOrganizationDto,
+  ) {
+    if (id !== user.organizationId) {
+      throw new ForbiddenException('Cannot update another organization');
+    }
+    return this.organizationsService.updateName(id, user.userId, dto.name);
   }
 
   @Post(':id/invites')

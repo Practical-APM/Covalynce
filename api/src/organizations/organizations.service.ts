@@ -66,6 +66,27 @@ export class OrganizationsService {
     };
   }
 
+  async updateName(id: string, actorUserId: string, name: string) {
+    const org = await this.prisma.organization.update({
+      where: { id },
+      data: { name },
+      select: { id: true, name: true, slug: true, plan: true },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        organizationId: id,
+        actorUserId,
+        action: 'organization.renamed',
+        resource: 'organization',
+        resourceId: id,
+        metadata: { name },
+      },
+    });
+
+    return org;
+  }
+
   async findById(id: string) {
     const org = await this.prisma.organization.findUnique({
       where: { id },

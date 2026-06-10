@@ -28,7 +28,7 @@ export const GETTING_STARTED_STEPS: GettingStartedStep[] = [
     title: "Connect an AI provider",
     description: "Link OpenAI, Anthropic, or Gemini so spend data can sync.",
     href: "/providers",
-    docHref: "/help/concepts#providers",
+    docHref: "/help/concepts#provider",
   },
   {
     id: "dashboard",

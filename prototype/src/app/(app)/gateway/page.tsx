@@ -4,11 +4,13 @@ import { useCallback, useState } from "react";
 import { Copy, Key } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { Callout } from "@/components/callout";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { GatewayIntegrationPanel } from "@/components/gateway-integration-panel";
 import { PageHeader } from "@/components/page-header";
 import { PAGE_META } from "@/lib/page-meta";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +41,13 @@ export default function GatewayPage() {
   const [open, setOpen] = useState(false);
   const [editingRpm, setEditingRpm] = useState<string | null>(null);
   const [rpmValue, setRpmValue] = useState("120");
+  const [rpmError, setRpmError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<
+    Awaited<ReturnType<typeof api.listGatewayKeys>>[number] | null
+  >(null);
+  const [revoking, setRevoking] = useState(false);
   const [intelligentRouting, setIntelligentRouting] = useState(false);
 
   const load = useCallback(async () => {
@@ -56,18 +65,48 @@ export default function GatewayPage() {
   useLoadEffect(load, [load]);
 
   async function handleCreateKey() {
-    const res = await api.createGatewayKey(newKeyName);
-    setCreatedKey(res.key);
-    setOpen(false);
-    await load();
+    if (!newKeyName.trim()) {
+      setCreateError("Key name is required.");
+      return;
+    }
+    setCreateError(null);
+    setCreating(true);
+    try {
+      const res = await api.createGatewayKey(newKeyName.trim());
+      setCreatedKey(res.key);
+      setOpen(false);
+      await load();
+    } catch (e) {
+      setCreateError(
+        e instanceof Error ? e.message : "Could not create gateway key."
+      );
+    } finally {
+      setCreating(false);
+    }
   }
 
   async function handleSaveRpm(id: string) {
     const rpm = parseInt(rpmValue, 10);
-    if (rpm < 10 || rpm > 10000) return;
+    if (!Number.isFinite(rpm) || rpm < 10 || rpm > 10000) {
+      setRpmError("Rate limit must be between 10 and 10,000 requests per minute.");
+      return;
+    }
+    setRpmError(null);
     await api.updateGatewayKeyRateLimit(id, rpm);
     setEditingRpm(null);
     await load();
+  }
+
+  async function handleRevokeKey() {
+    if (!revokeTarget) return;
+    setRevoking(true);
+    try {
+      await api.revokeGatewayKey(revokeTarget.id);
+      setRevokeTarget(null);
+      await load();
+    } finally {
+      setRevoking(false);
+    }
   }
 
   async function toggleIntelligentRouting() {
@@ -106,8 +145,15 @@ export default function GatewayPage() {
                     onChange={(e) => setNewKeyName(e.target.value)}
                   />
                 </div>
-                <Button className="w-full" onClick={handleCreateKey}>
-                  Generate key
+                {createError && (
+                  <p className="text-sm text-destructive">{createError}</p>
+                )}
+                <Button
+                  className="w-full"
+                  disabled={creating}
+                  onClick={handleCreateKey}
+                >
+                  {creating ? "Generating…" : "Generate key"}
                 </Button>
               </div>
             </DialogContent>
@@ -199,6 +245,16 @@ export default function GatewayPage() {
         </Callout>
       )}
 
+      {apiMode && keys.length === 0 && (
+        <Card>
+          <CardContent className="py-6 text-sm text-muted-foreground">
+            No gateway keys yet. Create one with <strong>Create gateway key</strong>{" "}
+            above, then point your SDK at the proxy endpoints to start logging
+            requests in real time.
+          </CardContent>
+        </Card>
+      )}
+
       {apiMode && keys.length > 0 && (
         <div className="surface-panel overflow-hidden">
           <div className="border-b border-border px-5 py-4">
@@ -225,7 +281,10 @@ export default function GatewayPage() {
                         max={10000}
                         className="h-8 w-24"
                         value={rpmValue}
-                        onChange={(e) => setRpmValue(e.target.value)}
+                        onChange={(e) => {
+                          setRpmValue(e.target.value);
+                          setRpmError(null);
+                        }}
                       />
                       <Button
                         size="sm"
@@ -237,10 +296,16 @@ export default function GatewayPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setEditingRpm(null)}
+                        onClick={() => {
+                          setEditingRpm(null);
+                          setRpmError(null);
+                        }}
                       >
                         Cancel
                       </Button>
+                      {rpmError && (
+                        <span className="text-xs text-destructive">{rpmError}</span>
+                      )}
                     </>
                   ) : (
                     <>
@@ -262,9 +327,7 @@ export default function GatewayPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              api.revokeGatewayKey(k.id).then(load)
-                            }
+                            onClick={() => setRevokeTarget(k)}
                           >
                             Revoke
                           </Button>
@@ -280,6 +343,16 @@ export default function GatewayPage() {
       )}
 
       {apiMode && <GatewayIntegrationPanel />}
+
+      <ConfirmDialog
+        open={!!revokeTarget}
+        onOpenChange={(v) => !v && setRevokeTarget(null)}
+        title="Revoke gateway key?"
+        description={`Revoke "${revokeTarget?.name ?? "this key"}"? Apps using it will stop authenticating immediately.`}
+        confirmLabel="Revoke key"
+        loading={revoking}
+        onConfirm={handleRevokeKey}
+      />
     </div>
   );
 }

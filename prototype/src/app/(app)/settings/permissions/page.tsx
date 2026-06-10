@@ -24,8 +24,24 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
-import { isAdmin } from "@/lib/permissions";
+import {
+  PERMISSIONS,
+  defaultPermissionsForRole,
+  isAdmin,
+} from "@/lib/permissions";
 import { useLoadEffect } from "@/hooks/use-load-effect";
+
+/** Default matrix shown read-only in demo mode. */
+const DEMO_MATRIX: Awaited<ReturnType<typeof api.getRbacMatrix>> = {
+  permissions: [...PERMISSIONS],
+  roles: ["ADMIN", "MANAGER", "VIEWER"],
+  matrix: {
+    ADMIN: defaultPermissionsForRole("ADMIN"),
+    MANAGER: defaultPermissionsForRole("MANAGER"),
+    VIEWER: defaultPermissionsForRole("VIEWER"),
+  },
+  hasOverrides: false,
+};
 
 const PERMISSION_LABELS: Record<string, string> = {
   "providers:read": "View providers",
@@ -58,7 +74,7 @@ export default function SettingsPermissionsPage() {
   const canOverride = hasEnterpriseFeature("rbac_overrides");
   const [matrix, setMatrix] = useState<
     Awaited<ReturnType<typeof api.getRbacMatrix>> | null
-  >(null);
+  >(apiMode ? null : DEMO_MATRIX);
 
   const load = useCallback(async () => {
     if (!apiMode || !admin) return;
@@ -101,6 +117,14 @@ export default function SettingsPermissionsPage() {
         <CardContent className="overflow-x-auto">
           {apiMode && admin && !canOverride && (
             <EnterpriseFeatureGate feature="rbac_overrides" className="mb-4" />
+          )}
+          {apiMode && matrix === null && (
+            <p className="text-sm text-muted-foreground">Loading permissions…</p>
+          )}
+          {!apiMode && (
+            <p className="mb-4 text-xs text-muted-foreground">
+              Demo mode: default role matrix shown read-only.
+            </p>
           )}
           {matrix && (
             <>

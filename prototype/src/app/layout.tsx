@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
+import { Archivo, Inter, JetBrains_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/auth-provider";
 import { EditionFeaturesProvider } from "@/components/edition-features-provider";
 import { PermissionsProvider } from "@/components/permissions-provider";
@@ -9,10 +9,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LANDING_SEO } from "@/lib/landing-copy";
 import "./globals.css";
 
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-serif",
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["500", "600", "700"],
 });
 
 const inter = Inter({
@@ -47,7 +47,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${archivo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>

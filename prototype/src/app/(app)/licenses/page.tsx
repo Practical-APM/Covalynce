@@ -28,18 +28,54 @@ import { api } from "@/lib/api";
 import { useLoadEffect } from "@/hooks/use-load-effect";
 import { isAdmin } from "@/lib/permissions";
 
+/** Sample licenses for demo mode. */
+const DEMO_LICENSES: Awaited<ReturnType<typeof api.listLicenses>> = [
+  {
+    id: "demo-copilot",
+    vendor: "GitHub",
+    planName: "Copilot Business",
+    seats: 40,
+    monthlyCost: 760,
+    renewsAt: new Date(Date.now() + 47 * 86400000).toISOString(),
+    notes: null,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-chatgpt",
+    vendor: "OpenAI",
+    planName: "ChatGPT Team",
+    seats: 25,
+    monthlyCost: 625,
+    renewsAt: new Date(Date.now() + 12 * 86400000).toISOString(),
+    notes: null,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-claude",
+    vendor: "Anthropic",
+    planName: "Claude Team",
+    seats: 15,
+    monthlyCost: 450,
+    renewsAt: new Date(Date.now() + 80 * 86400000).toISOString(),
+    notes: null,
+    createdAt: new Date().toISOString(),
+  },
+];
+
 export default function LicensesPage() {
   const { apiMode, session } = useAuth();
   const admin = isAdmin(session?.user.role ?? "VIEWER");
   const [licenses, setLicenses] = useState<
     Awaited<ReturnType<typeof api.listLicenses>>
-  >([]);
+  >(apiMode ? [] : DEMO_LICENSES);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<
     Awaited<ReturnType<typeof api.listLicenses>>[number] | null
   >(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const [form, setForm] = useState({
     vendor: "OpenAI",
     planName: "Team",
@@ -62,15 +98,40 @@ export default function LicensesPage() {
   useLoadEffect(load, [load]);
 
   async function handleCreate() {
-    await api.createLicense({
-      vendor: form.vendor,
-      planName: form.planName,
-      seats: form.seats ? Number(form.seats) : undefined,
-      monthlyCost: form.monthlyCost ? Number(form.monthlyCost) : undefined,
-      renewsAt: form.renewsAt || undefined,
-    });
-    setOpen(false);
-    await load();
+    if (!form.vendor.trim() || !form.planName.trim()) {
+      setFormError("Vendor and plan are required.");
+      return;
+    }
+    const seats = form.seats ? Number(form.seats) : undefined;
+    const monthlyCost = form.monthlyCost ? Number(form.monthlyCost) : undefined;
+    if (seats !== undefined && (!Number.isFinite(seats) || seats <= 0)) {
+      setFormError("Seats must be a positive number.");
+      return;
+    }
+    if (
+      monthlyCost !== undefined &&
+      (!Number.isFinite(monthlyCost) || monthlyCost < 0)
+    ) {
+      setFormError("Monthly cost must be a valid number.");
+      return;
+    }
+    setSaving(true);
+    setFormError(null);
+    try {
+      await api.createLicense({
+        vendor: form.vendor.trim(),
+        planName: form.planName.trim(),
+        seats,
+        monthlyCost,
+        renewsAt: form.renewsAt || undefined,
+      });
+      setOpen(false);
+      await load();
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "Failed to save license");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function openEdit(license: Awaited<ReturnType<typeof api.listLicenses>>[number]) {
@@ -87,15 +148,33 @@ export default function LicensesPage() {
   }
 
   async function handleSaveEdit() {
+    const seats = editForm.seats ? Number(editForm.seats) : null;
+    const monthlyCost = editForm.monthlyCost ? Number(editForm.monthlyCost) : null;
+    if (seats !== null && (!Number.isFinite(seats) || seats <= 0)) {
+      setEditError("Seats must be a positive number.");
+      return;
+    }
+    if (
+      monthlyCost !== null &&
+      (!Number.isFinite(monthlyCost) || monthlyCost < 0)
+    ) {
+      setEditError("Monthly cost must be a valid number.");
+      return;
+    }
+    setEditError(null);
     setSaving(true);
     try {
       await api.updateLicense(editForm.id, {
-        seats: editForm.seats ? Number(editForm.seats) : null,
-        monthlyCost: editForm.monthlyCost ? Number(editForm.monthlyCost) : null,
+        seats,
+        monthlyCost,
         renewsAt: editForm.renewsAt || null,
       });
       setEditOpen(false);
       await load();
+    } catch (e) {
+      setEditError(
+        e instanceof Error ? e.message : "Could not update license. Try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -186,14 +265,28 @@ export default function LicensesPage() {
                     }
                   />
                 </div>
-                <Button className="w-full" onClick={handleCreate}>
-                  Save license
+                {formError && (
+                  <p className="text-sm text-destructive">{formError}</p>
+                )}
+                <Button
+                  className="w-full"
+                  onClick={handleCreate}
+                  disabled={saving}
+                >
+                  {saving ? "Saving…" : "Save license"}
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
         )}
       </PageHeader>
+
+      {!apiMode && licenses.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Demo mode: sample licenses shown. Sign in with the API connected to
+          add or edit records.
+        </p>
+      )}
 
       {licenses.length > 0 && (
         <Card>
@@ -242,7 +335,7 @@ export default function LicensesPage() {
                   {new Date(license.renewsAt).toLocaleDateString()}
                 </p>
               )}
-              {admin && (
+              {admin && apiMode && (
                 <div className="mt-2 flex gap-2">
                   <Button
                     variant="ghost"
@@ -304,6 +397,9 @@ export default function LicensesPage() {
                 }
               />
             </div>
+            {editError && (
+              <p className="text-sm text-destructive">{editError}</p>
+            )}
             <Button className="w-full" disabled={saving} onClick={handleSaveEdit}>
               {saving ? "Saving…" : "Save changes"}
             </Button>

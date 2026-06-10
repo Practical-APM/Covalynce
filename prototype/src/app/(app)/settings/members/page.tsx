@@ -149,7 +149,7 @@ export default function SettingsMembersPage() {
         title="Members"
         description="Invite users and manage roles (admin, manager, viewer)"
       >
-        {canInvite && (
+        {canInvite && apiMode && (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground">
             <Plus className="size-4" />
@@ -203,6 +203,11 @@ export default function SettingsMembersPage() {
             </div>
           </DialogContent>
         </Dialog>
+        )}
+        {canInvite && !apiMode && (
+          <p className="text-xs text-muted-foreground">
+            Sign in with the API connected to invite members.
+          </p>
         )}
       </PageHeader>
 

@@ -69,6 +69,15 @@ export class RefreshTokenService {
     }
   }
 
+  /** Revoke every active refresh token for a user. Returns revoked count. */
+  async revokeAllForUser(userId: string) {
+    const result = await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return result.count;
+  }
+
   async rotate(rawToken: string) {
     const user = await this.validate(rawToken);
     await this.revoke(rawToken);

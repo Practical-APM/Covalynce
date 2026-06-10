@@ -55,6 +55,14 @@ export class AuthController {
     return this.authService.logout(dto.refreshToken);
   }
 
+  @Post('sessions/revoke-all')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  revokeAllSessions(@CurrentUser() user: AuthUser) {
+    return this.authService.revokeAllSessions(user);
+  }
+
   @Get('memberships')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, EnterpriseFeatureGuard)

@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { BarChart3 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { TableSkeleton } from "@/components/loading-skeletons";
 import { PageHeader } from "@/components/page-header";
 import { DateRangeSelect } from "@/components/date-range-select";
 import { useAuth } from "@/components/auth-provider";
@@ -30,6 +31,7 @@ import { api } from "@/lib/api";
 export default function ModelsPage() {
   const { apiMode } = useAuth();
   const [range, setRange] = useState("mtd");
+  const [loading, setLoading] = useState(apiMode);
   const [models, setModels] = useState<
     { model: string; provider: string; cost: number; share: number }[]
   >([]);
@@ -39,8 +41,13 @@ export default function ModelsPage() {
       setModels(modelBreakdown);
       return;
     }
-    const data = await api.analyticsModels(range);
-    setModels(data);
+    setLoading(true);
+    try {
+      const data = await api.analyticsModels(range);
+      setModels(data);
+    } finally {
+      setLoading(false);
+    }
   }, [apiMode, range]);
 
   useLoadEffect(load, [load]);
@@ -59,7 +66,22 @@ export default function ModelsPage() {
         <DateRangeSelect value={range} onValueChange={setRange} />
       </PageHeader>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      {!apiMode && (
+        <p className="text-xs text-muted-foreground">
+          Demo mode: sample model breakdown shown. Connect the API for live
+          spend by model.
+        </p>
+      )}
+
+      {loading && display.length === 0 && <TableSkeleton rows={6} cols={4} />}
+
+      <div
+        className={
+          loading && display.length === 0
+            ? "hidden"
+            : "grid gap-4 lg:grid-cols-2"
+        }
+      >
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Cost distribution</CardTitle>
@@ -117,7 +139,7 @@ export default function ModelsPage() {
           </CardContent>
       </Card>
 
-      {apiMode && display.length === 0 && (
+      {apiMode && !loading && display.length === 0 && (
         <EmptyState
           icon={BarChart3}
           title="No model usage yet"

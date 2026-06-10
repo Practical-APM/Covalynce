@@ -49,7 +49,7 @@ export class ProvidersController {
 
   @Get('oauth/:provider/start')
   @RequirePermission('providers:manage')
-  startOAuth(
+  async startOAuth(
     @Param('provider') provider: ProviderName,
     @Query() query: OAuthStartQueryDto,
     @CurrentUser() user: AuthUser,
@@ -66,12 +66,12 @@ export class ProvidersController {
     return {
       oauthAvailable: true,
       preferred: true,
-      ...this.oauth.startOAuth(
+      ...(await this.oauth.startOAuth(
         user.organizationId,
         user.userId,
         provider,
         origin,
-      ),
+      )),
     };
   }
 

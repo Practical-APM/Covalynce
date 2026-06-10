@@ -1,109 +1,110 @@
 "use client";
 
-import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import { AnimatedProductPreview } from "@/components/landing/animated-product-preview";
 import { LandingButton, LandingTextLink } from "@/components/landing/landing-button";
-import { LandingInteractiveStats } from "@/components/landing/landing-interactive-stats";
 import { LANDING } from "@/lib/landing-copy";
+
+const ease = [0.16, 1, 0.3, 1] as const;
 
 export function LandingHero() {
   const sectionRef = useRef<HTMLElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start start", "end start"],
   });
-
-  const previewY = useTransform(scrollYProgress, [0, 1], [0, 80]);
-  const previewScale = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
-  const previewOpacity = useTransform(scrollYProgress, [0, 0.85], [1, 0.65]);
-  const headlineY = useTransform(scrollYProgress, [0, 1], [0, -24]);
-
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 120, damping: 22 });
-  const springY = useSpring(mouseY, { stiffness: 120, damping: 22 });
-  const tiltX = useTransform(springY, [-0.5, 0.5], [4, -4]);
-  const tiltY = useTransform(springX, [-0.5, 0.5], [-4, 4]);
-
-  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (reduce || !previewRef.current) return;
-    const rect = previewRef.current.getBoundingClientRect();
-    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
-    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
-  }
-
-  function onPointerLeave() {
-    mouseX.set(0);
-    mouseY.set(0);
-  }
+  const previewY = useTransform(scrollYProgress, [0, 1], [0, 56]);
 
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden border-b border-border/70 bg-background py-16 sm:py-24 lg:py-28"
+      className="landing-ink-adaptive ledger-lines relative overflow-hidden border-b border-border/70"
     >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-60"
-        aria-hidden
-      >
-        <div className="absolute -left-1/4 top-0 h-[480px] w-[480px] rounded-full landing-ambient-neon blur-3xl" />
-        <div className="absolute -right-1/4 bottom-0 h-[400px] w-[400px] rounded-full landing-ambient-neon opacity-60 blur-3xl" />
+      <div className="mx-auto max-w-7xl px-5 pt-16 pb-14 sm:px-8 sm:pt-24 sm:pb-16 lg:pt-28">
+        <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">
+          <motion.div
+            initial={reduce ? false : { opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease }}
+          >
+            <div className="flex items-baseline gap-4">
+              <span className="ledger-index">§ 00</span>
+              <span className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                {LANDING.eyebrow}
+              </span>
+            </div>
+
+            <h1 className="landing-headline mt-7 text-foreground">
+              {LANDING.headline}{" "}
+              <span className="landing-headline-accent block">{LANDING.headlineAccent}</span>
+            </h1>
+
+            <p className="mt-6 max-w-lg text-base leading-relaxed text-foreground/70 sm:text-lg">
+              {LANDING.subhead}
+            </p>
+
+            <div className="mt-9 flex flex-wrap items-center gap-5">
+              <LandingButton href="/onboarding">
+                {LANDING.ctaPrimary}
+                <ArrowRight className="size-4" />
+              </LandingButton>
+              <LandingTextLink
+                href="/dashboard"
+                className="text-sm font-semibold text-foreground/70 hover:text-foreground"
+              >
+                {LANDING.ctaSecondary}
+              </LandingTextLink>
+            </div>
+
+            <p className="mt-10 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              Works with <span className="text-foreground/80">OpenAI</span> ·{" "}
+              <span className="text-foreground/80">Anthropic</span> ·{" "}
+              <span className="text-foreground/80">Gemini</span>
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={reduce ? false : { opacity: 0, y: 32 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.15, ease }}
+            style={reduce ? undefined : { y: previewY }}
+            className="border border-border bg-card p-1.5 sm:p-2"
+          >
+            <AnimatedProductPreview size="large" />
+          </motion.div>
+        </div>
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 text-center">
-        <motion.div
-          className="mx-auto max-w-4xl"
-          style={reduce ? undefined : { y: headlineY }}
-        >
-          <span className="landing-eyebrow-badge inline-flex items-center border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em]">
-            {LANDING.eyebrow}
-          </span>
-          <h1 className="landing-headline mt-6 text-4xl sm:text-[3.25rem] md:text-[4.25rem] leading-[1.02] tracking-tight">
-            {LANDING.headline}{" "}
-            <span className="landing-headline-accent block mt-2">{LANDING.headlineAccent}</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-muted-foreground text-balance">
-            {LANDING.subhead}
-          </p>
-
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <LandingButton href="/onboarding">
-              {LANDING.ctaPrimary}
-              <ArrowRight className="size-4" />
-            </LandingButton>
-            <LandingTextLink href="/dashboard" className="text-sm font-semibold text-muted-foreground hover:text-foreground">
-              {LANDING.ctaSecondary}
-            </LandingTextLink>
-          </div>
-
-          <LandingInteractiveStats />
-        </motion.div>
-
-        <motion.div
-          ref={previewRef}
-          className="mx-auto mt-16 max-w-5xl landing-panel p-1 sm:p-2"
-          style={
-            reduce
-              ? undefined
-              : {
-                  y: previewY,
-                  scale: previewScale,
-                  opacity: previewOpacity,
-                  rotateX: tiltX,
-                  rotateY: tiltY,
-                  transformPerspective: 1200,
-                }
-          }
-          onPointerMove={onPointerMove}
-          onPointerLeave={onPointerLeave}
-        >
-          <AnimatedProductPreview size="large" />
-        </motion.div>
+      {/* Proof ledger: every value is documented in the repo */}
+      <div className="relative border-t border-border/70">
+        <dl className="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-border/60 px-5 sm:grid-cols-2 sm:divide-y-0 sm:divide-x sm:px-8 lg:grid-cols-4">
+          {LANDING.trustItems.map((item, i) => (
+            <motion.div
+              key={item.label}
+              className="flex flex-col gap-1 py-5 sm:px-6 sm:py-6 first:sm:pl-0 last:sm:pr-0"
+              initial={reduce ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 + i * 0.08, ease }}
+            >
+              <dt className="flex items-baseline gap-2">
+                <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  {item.label}
+                </span>
+                <span aria-hidden className="ledger-leader" />
+              </dt>
+              <dd>
+                <span className="ledger-value text-sm text-foreground">{item.value}</span>
+                <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                  {item.detail}
+                </span>
+              </dd>
+            </motion.div>
+          ))}
+        </dl>
       </div>
     </section>
   );

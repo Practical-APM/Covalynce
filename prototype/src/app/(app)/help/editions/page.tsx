@@ -76,11 +76,15 @@ export default function HelpEditionsPage() {
         <li>Sign up — new organizations default to the community plan</li>
       </ol>
 
-      <h2 className="mt-10 text-lg font-semibold">Environment (planned)</h2>
-      <pre className="mt-3 overflow-x-auto rounded-lg border border-border bg-muted/40 p-4 text-xs">
-{`COVALYNCE_EDITION=community   # community | enterprise
-COVALYNCE_LICENSE_KEY=        # enterprise features (future)`}
-      </pre>
+      <h2 className="mt-10 text-lg font-semibold">Runtime configuration</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Email delivery, OAuth apps, and other runtime credentials are managed in{" "}
+        <Link href="/settings/self-host" className="text-primary hover:underline">
+          Settings → Self-host
+        </Link>{" "}
+        after your instance is running. Bootstrap secrets (database, JWT, encryption
+        key) stay in your API environment file.
+      </p>
 
       <p className="mt-6 text-sm text-muted-foreground">
         Compare editions on the{" "}

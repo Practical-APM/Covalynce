@@ -15,13 +15,13 @@ import { LandingPlatformScroll } from "@/components/landing/landing-platform-scr
 import { LandingProblem } from "@/components/landing/landing-problem";
 import { LandingProductBleed } from "@/components/landing/landing-product-bleed";
 import { LandingShell } from "@/components/landing/landing-shell";
-import { LandingTrustBar } from "@/components/landing/landing-trust-bar";
 import { LANDING } from "@/lib/landing-copy";
 import { GITHUB_URL } from "@/lib/site-config";
 
 /**
- * Landing narrative (single pass, no repeated sections):
- * Hero → Problem → Product demo → Platform → How it works → Integrations → Audience → Trust bar → FAQ → CTA
+ * Landing ledger (single pass, indexed like a financial document):
+ * § 00 Hero + proof strip → § 01 Problem → § 02 Product → § 03 How it works
+ * → § 04 Platform → § 05 Integrations → § 06 Audience → § 07 FAQ → § 08 CTA
  */
 export function LandingPageClient() {
   return (
@@ -33,11 +33,10 @@ export function LandingPageClient() {
         <LandingHero />
         <LandingProblem />
         <LandingProductBleed />
-        <LandingPlatformScroll />
         <LandingHowItWorks />
+        <LandingPlatformScroll />
         <LandingLogos />
         <LandingAudience />
-        <LandingTrustBar />
         <LandingFaqSection />
         <LandingCta />
       </main>
@@ -51,7 +50,7 @@ export function LandingPageClient() {
             </div>
             <nav className="flex flex-wrap gap-12 sm:gap-16 text-sm">
               <ul className="space-y-2">
-                <li className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <li className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Product
                 </li>
                 <li>
@@ -76,7 +75,7 @@ export function LandingPageClient() {
                 </li>
               </ul>
               <ul className="space-y-2">
-                <li className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <li className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Company
                 </li>
                 <li>
@@ -85,7 +84,7 @@ export function LandingPageClient() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/help/getting-started" className="text-foreground/75 hover:text-foreground">
+                  <Link href="/help/self-host" className="text-foreground/75 hover:text-foreground">
                     Self-host guide
                   </Link>
                 </li>
@@ -103,7 +102,7 @@ export function LandingPageClient() {
                 )}
               </ul>
               <ul className="space-y-2">
-                <li className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <li className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Account
                 </li>
                 <li>
